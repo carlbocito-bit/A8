@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Champions: Unbound Companion App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <div class="menu-wrapper">
+      <button class="menu-btn" onclick="toggleMenu()">☰</button>
+      <div id="menuDropdown" class="menu-dropdown">
+        <button onclick="showTracker()">Tracker</button>
+        <button onclick="showRules()">Rules</button>
+        <button onclick="showCampaign()">Campaign</button>
+      </div>
+    </div>
+
+    <div id="trackerPage">
+      <section class="hero">
+        <div class="star-line"><span></span><b>✦</b><span></span></div>
+        <h1>Champions: Unbound</h1>
+        <h2>Companion App</h2>
+      </section>
+
+      <section class="tracker-card">
+        <div class="champion-header">
+          <div>
+            <label for="championSelect">Your Champion</label>
+            <select id="championSelect" onchange="loadChampionProfile()">
+              <option value="selene">Selene</option>
+              <option value="mark">Mark</option>
+              <option value="custom">Custom Champion</option>
+            </select>
+          </div>
+          <div class="profile-icon" id="championIcon">☾</div>
+        </div>
+
+        <section class="champion-info">
+          <strong id="championPassiveTitle">Passive — Calculated Future</strong>
+          <p id="championPassiveText">Once per turn, after a D20 roll, you may increase or decrease the result by 1.</p>
+          <small id="championBasic">Basic Attack: 1 AP → 1 Damage</small>
+        </section>
+
+        <div class="stats-grid three">
+          <section class="stat-box health-box">
+            <h3>Health ♥</h3>
+            <div class="stat-control small">
+              <button onclick="changeHealth(-1)">−</button>
+              <strong id="health">15</strong>
+              <button onclick="changeHealth(1)">+</button>
+            </div>
+            <div class="quick-controls two">
+              <button onclick="changeHealth(-5)">-5</button>
+              <button onclick="changeHealth(5)">+5</button>
+            </div>
+          </section>
+
+          <section class="stat-box armor-box">
+            <h3>Armor 🛡</h3>
+            <div class="stat-control small">
+              <button onclick="changeArmor(-1)">−</button>
+              <strong id="armor">2</strong>
+              <button onclick="changeArmor(1)">+</button>
+            </div>
+            <div class="quick-controls two">
+              <button onclick="changeArmor(-2)">-2</button>
+              <button onclick="changeArmor(2)">+2</button>
+            </div>
+          </section>
+
+          <section class="stat-box ap-box">
+            <h3>AP ϟ</h3>
+            <div class="stat-control small">
+              <button onclick="changeAP(-1)">−</button>
+              <strong id="ap">3</strong>
+              <button onclick="changeAP(1)">+</button>
+            </div>
+            <div class="quick-controls two">
+              <button onclick="changeAP(-1)">-1</button>
+              <button onclick="changeAP(1)">+1</button>
+            </div>
+          </section>
+        </div>
+
+        <section class="signature-card">
+          <div>
+            <strong id="signatureName">Command Reality</strong>
+            <small id="signatureText">2 AP • Focus 17</small>
+          </div>
+          <button onclick="rollSignature()">Roll</button>
+        </section>
+
+        <section class="roll-card">
+          <div id="rollResult">Tap an attribute to roll</div>
+          <small id="rollFormula">d20 + attribute = total</small>
+        </section>
+
+        <section class="attributes-card">
+          <h3 class="attributes-title">▥ Attributes</h3>
+
+          <div class="attribute-row" onclick="rollAttribute('might')">
+            <span class="attr-icon might">✊</span><strong>Might</strong><b id="might">1</b>
+            <div onclick="event.stopPropagation()"><button onclick="changeAttribute('might', -1)">−</button><button onclick="changeAttribute('might', 1)">+</button></div>
+          </div>
+
+          <div class="attribute-row" onclick="rollAttribute('speed')">
+            <span class="attr-icon speed">➤</span><strong>Speed</strong><b id="speed">4</b>
+            <div onclick="event.stopPropagation()"><button onclick="changeAttribute('speed', -1)">−</button><button onclick="changeAttribute('speed', 1)">+</button></div>
+          </div>
+
+          <div class="attribute-row" onclick="rollAttribute('resolve')">
+            <span class="attr-icon resolve">⬟</span><strong>Resolve</strong><b id="resolve">2</b>
+            <div onclick="event.stopPropagation()"><button onclick="changeAttribute('resolve', -1)">−</button><button onclick="changeAttribute('resolve', 1)">+</button></div>
+          </div>
+
+          <div class="attribute-row" onclick="rollAttribute('focus')">
+            <span class="attr-icon focus">◉</span><strong>Focus</strong><b id="focus">5</b>
+            <div onclick="event.stopPropagation()"><button onclick="changeAttribute('focus', -1)">−</button><button onclick="changeAttribute('focus', 1)">+</button></div>
+          </div>
+
+          <div class="attribute-row" onclick="rollAttribute('influence')">
+            <span class="attr-icon influence">♛</span><strong>Influence</strong><b id="influence">3</b>
+            <div onclick="event.stopPropagation()"><button onclick="changeAttribute('influence', -1)">−</button><button onclick="changeAttribute('influence', 1)">+</button></div>
+          </div>
+        </section>
+
+        <section class="history-card">
+          <strong>Recent Rolls</strong>
+          <div id="rollHistory">No rolls yet.</div>
+        </section>
+
+        <button class="reset-panel" onclick="resetGame()">⟳ Reset Game</button>
+      </section>
+    </div>
+
+    
+    <div id="rulesPage" class="rules-page">
+      <h2>📖 Champions: Unbound Rules</h2>
+
+      <div class="rule-section">
+        <h3>⚔️ Objective</h3>
+        <p>Reduce your opponent's Champion Health to 0 to win.</p>
+      </div>
+
+      <div class="rule-section">
+        <h3>🎴 Setup</h3>
+        <p>• Select your Champion.</p>
+        <p>• Set starting Health, Armor, AP, and Attributes.</p>
+        <p>• Players complete their setup phase before damage can be dealt.</p>
+      </div>
+
+      <div class="rule-section">
+        <h3>⚡ Turn Flow</h3>
+        <p>1. Refresh AP to your Champion's starting AP.</p>
+        <p>2. Play cards and use abilities.</p>
+        <p>3. Attack or use Signature Techniques.</p>
+        <p>4. Unused AP may be used for reactions.</p>
+      </div>
+
+      <div class="rule-section">
+        <h3>🎲 Attribute Rolls</h3>
+        <p>Roll a D20 + Attribute.</p>
+        <p>Success happens when the total meets the difficulty.</p>
+        <p>⭐ Natural 20 triggers bonus effects.</p>
+        <p>💀 Natural 1 triggers failure effects.</p>
+      </div>
+
+      <div class="rule-section">
+        <h3>🔥 Signature Techniques</h3>
+        <p>• Pay the AP cost.</p>
+        <p>• Roll the required Attribute check.</p>
+        <p>• Apply Success, Nat 20, or Nat 1 effects.</p>
+      </div>
+
+      <div class="rule-section">
+        <h3>🗡️ Basic Attacks</h3>
+        <p>• Basic Attacks cost AP.</p>
+        <p>• Champions may only Basic Attack once per turn unless an effect allows more.</p>
+      </div>
+
+      <div class="rule-section">
+        <h3>🛡️ Armor</h3>
+        <p>Damage removes Armor before Health unless stated otherwise.</p>
+      </div>
+
+      <div class="rule-section">
+        <h3>👥 Allies</h3>
+        <p>• Allies can block.</p>
+        <p>• Allies attack only if Champion abilities or effects allow them.</p>
+      </div>
+    </div>
+
+
+    <div id="campaignPage" class="campaign-page">
+      <h2>⚔ Campaign Mode</h2>
+      <p class="campaign-subtitle">AI-generated solo challenge: clear 3 waves, then survive the boss room.</p>
+
+      <section class="campaign-panel campaign-setup">
+        <div>
+          <label for="campaignChampion">Champion</label>
+          <select id="campaignChampion">
+            <option value="current">Use Current Tracker Champion</option>
+            <option value="selene">Selene</option>
+            <option value="mark">Mark</option>
+            <option value="custom">Custom Champion</option>
+          </select>
+        </div>
+        <button onclick="startCampaign()">Start Campaign</button>
+      </section>
+
+      <section class="campaign-status-grid">
+        <div class="campaign-stat">
+          <span>Progress</span>
+          <strong id="campaignProgress">Not Started</strong>
+        </div>
+        <div class="campaign-stat">
+          <span>Room</span>
+          <strong id="campaignRoom">—</strong>
+        </div>
+        <div class="campaign-stat">
+          <span>Player HP</span>
+          <strong id="campaignPlayerHP">—</strong>
+        </div>
+        <div class="campaign-stat boss-stat">
+          <span>Enemy HP</span>
+          <strong id="campaignEnemyHP">—</strong>
+        </div>
+      </section>
+
+      <section class="campaign-enemy-card">
+        <div class="campaign-enemy-icon" id="campaignEnemyIcon">?</div>
+        <div>
+          <h3 id="campaignEnemyName">No Enemy Generated</h3>
+          <p id="campaignEnemyTrait">Start a campaign to generate Wave 1.</p>
+          <small id="campaignEnemyStats">Balanced scaling keeps waves beatable and boss room challenging.</small>
+        </div>
+      </section>
+
+      <section class="campaign-actions">
+        <button onclick="campaignPlayerAttack()">Basic Attack</button>
+        <button onclick="campaignPlayerSignature()">Signature Ability</button>
+        <button onclick="campaignEnemyTurn()">Run Enemy Turn</button>
+        <button onclick="advanceCampaignRoom()">Next Room</button>
+      </section>
+
+      <section class="campaign-panel">
+        <strong>Campaign Log</strong>
+        <div id="campaignLog">No campaign actions yet.</div>
+      </section>
+    </div>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

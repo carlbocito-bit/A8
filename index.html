@@ -81,18 +81,17 @@
               <button onclick="changeAP(-1)">-1</button>
               <button onclick="changeAP(1)">+1</button>
             </div>
+            <button class="refresh-ap-btn" onclick="refreshAP()">Refresh AP</button>
           </section>
         </div>
 
-        <section class="signature-card">
-          <div>
-            <strong id="signatureName">Command Reality</strong>
-            <small id="signatureText">2 AP • Focus 17</small>
-          </div>
-          <button onclick="rollSignature()">Roll</button>
+        <section class="signature-card signature-tap" onclick="rollSignature()" role="button" tabindex="0" aria-label="Roll Signature Ability" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();rollSignature();}">
+          <span class="signature-label">Signature Ability</span>
+          <strong id="signatureName">Command Reality</strong>
+          <small id="signatureText">2 AP • Focus 17</small>
         </section>
 
-        <section class="roll-card">
+        <section class="roll-card tracker-hidden-roll" aria-hidden="true">
           <div id="rollResult">Tap an attribute to roll</div>
           <small id="rollFormula">d20 + attribute = total</small>
         </section>
@@ -126,12 +125,10 @@
           </div>
         </section>
 
-        <section class="history-card">
+        <section class="history-card tracker-hidden-roll" aria-hidden="true">
           <strong>Recent Rolls</strong>
           <div id="rollHistory">No rolls yet.</div>
         </section>
-
-        <button class="reset-panel" onclick="resetGame()">⟳ Reset Game</button>
       </section>
     </div>
 
@@ -249,6 +246,14 @@
         <strong>Campaign Log</strong>
         <div id="campaignLog">No campaign actions yet.</div>
       </section>
+    </div>
+
+    <div id="resultPopup" class="result-popup" onclick="closeResultPopup()">
+      <div class="result-popup-card" onclick="event.stopPropagation()">
+        <button class="popup-close" onclick="closeResultPopup()">×</button>
+        <h3 id="popupTitle">Roll Result</h3>
+        <div id="popupBody"></div>
+      </div>
     </div>
 
   </main>

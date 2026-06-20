@@ -103,7 +103,6 @@ function updateDisplay() {
   for (const attribute in attributes) {
     setText(attribute, attributes[attribute]);
   }
-
   updateChampionInfo();
 }
 
@@ -116,10 +115,47 @@ function clearRoll() {
   formulaBox.innerText = "d20 + attribute = total";
 }
 
+function isBerserkerActive() {
+  const profile = getActiveProfile();
+  return activeProfile === "mark" && health > 0 && health < Math.ceil(profile.health / 2);
+}
+
+function getCurrentMaxAP() {
+  const profile = getActiveProfile();
+  return profile.ap + (isBerserkerActive() ? 1 : 0);
+}
+
+function getRollBreakdown(attribute) {
+  const base = attributes[attribute] || 0;
+  const bonuses = [];
+  if (activeProfile === "mark" && attribute === "might" && isBerserkerActive()) {
+    bonuses.push({ source: "Berserker Spirit", amount: 2 });
+  }
+  const bonusTotal = bonuses.reduce((sum, item) => sum + item.amount, 0);
+  return { base, bonuses, bonusTotal, finalBonus: base + bonusTotal };
+}
+
+function formatBonusLines(attribute, breakdown) {
+  const label = capitalize(attribute);
+  const lines = [`<p><b>Base ${label}:</b> +${breakdown.base}</p>`];
+  if (breakdown.bonuses.length) {
+    lines.push(`<p><b>Bonuses:</b></p>`);
+    breakdown.bonuses.forEach(b => lines.push(`<p class="bonus-line">${b.source}: +${b.amount}</p>`));
+  } else {
+    lines.push(`<p><b>Bonuses:</b> None</p>`);
+  }
+  lines.push(`<p><b>Final ${label}:</b> +${breakdown.finalBonus}</p>`);
+  return lines.join("");
+}
+
 function changeHealth(amount) {
+  const wasBerserker = isBerserkerActive();
   health += amount;
   if (health < 0) health = 0;
-  setText("health", health);
+  const nowBerserker = isBerserkerActive();
+  if (!wasBerserker && nowBerserker) ap += 1;
+  if (wasBerserker && !nowBerserker && ap > getCurrentMaxAP()) ap = getCurrentMaxAP();
+  updateDisplay();
 }
 
 function changeArmor(amount) {
@@ -144,51 +180,122 @@ function capitalize(word) {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
+function showResultPopup(title, bodyHtml) {
+  const popup = document.getElementById("resultPopup");
+  const titleBox = document.getElementById("popupTitle");
+  const bodyBox = document.getElementById("popupBody");
+  if (!popup || !titleBox || !bodyBox) return;
+  titleBox.innerText = title;
+  bodyBox.innerHTML = bodyHtml;
+  popup.classList.add("open");
+}
+
+function closeResultPopup() {
+  const popup = document.getElementById("resultPopup");
+  if (popup) popup.classList.remove("open");
+}
+
+function getRollStatus(roll, total, difficulty) {
+  if (roll === 20) return "NAT 20";
+  if (roll === 1) return "NAT 1";
+  if (difficulty !== null && total >= difficulty) return "SUCCESS";
+  if (difficulty !== null) return "FAILED";
+  return "ROLL";
+}
+
 function rollAttribute(attribute, difficulty = null, label = null) {
   const roll = Math.floor(Math.random() * 20) + 1;
-  const bonus = attributes[attribute];
-  const total = roll + bonus;
-  const name = label || capitalize(attribute);
-  const resultBox = document.getElementById("rollResult");
-  const formulaBox = document.getElementById("rollFormula");
+  const breakdown = getRollBreakdown(attribute);
+  const total = roll + breakdown.finalBonus;
+  const name = label || capitalize(attribute) + " Roll";
+  const status = getRollStatus(roll, total, difficulty);
 
-  resultBox.className = "";
+  const body = `
+    <div class="popup-result ${status.toLowerCase().replace(/ /g, '-')}">
+      <p><b>Roll:</b> ${roll}</p>
+      ${formatBonusLines(attribute, breakdown)}
+      <p class="popup-total"><b>Total:</b> ${total}${difficulty !== null ? ` vs ${difficulty}` : ""}</p>
+      <h4>${status}</h4>
+    </div>
+  `;
 
-  let status = "";
-  if (roll === 20) {
-    resultBox.classList.add("nat20");
-    status = "NAT 20!";
-  } else if (roll === 1) {
-    resultBox.classList.add("nat1");
-    status = "NAT 1!";
-  } else if (difficulty !== null && total >= difficulty) {
-    resultBox.classList.add("success");
-    status = "SUCCESS!";
-  } else if (difficulty !== null) {
-    resultBox.classList.add("fail");
-    status = "FAIL";
+  showResultPopup(name.toUpperCase(), body);
+  addRollHistory(`${name}: ${roll} + ${breakdown.finalBonus} = ${total}${difficulty ? " vs " + difficulty : ""}`);
+}
+
+function getSignatureEffect(profile, status) {
+  const name = profile.signatureName;
+  if (status === "FAILED") return "";
+  if (status === "NAT 1") return "Exhaust 1 AP.";
+
+  if (activeProfile === "mark") {
+    if (status === "NAT 20") return "Make 3 Basic Attacks. Gain +1 AP.";
+    return "Make 2 Basic Attacks. The second attack gains +1 damage.";
   }
 
-  resultBox.innerText = (status ? status + " " : "") + name + " Total: " + total;
-  formulaBox.innerText = "d20 roll " + roll + " + " + capitalize(attribute) + " " + bonus + " = " + total + (difficulty ? " vs " + difficulty : "");
+  if (activeProfile === "selene") {
+    if (status === "NAT 20") return "Gain +3 AP until end of turn. Draw 1 card.";
+    return "Gain +2 AP until end of turn.";
+  }
 
-  addRollHistory(name + ": " + roll + " + " + bonus + " = " + total + (difficulty ? " vs " + difficulty : ""));
+  if (status === "NAT 20") return `${name} resolves with its enhanced Nat 20 effect.`;
+  return `${name} resolves successfully.`;
+}
+
+function applySignatureEffect(profile, status) {
+  if (status === "FAILED") return;
+  if (status === "NAT 1") return;
+
+  if (activeProfile === "mark" && status === "NAT 20") {
+    ap += 1;
+  }
+
+  if (activeProfile === "selene") {
+    ap += status === "NAT 20" ? 3 : 2;
+  }
 }
 
 function rollSignature() {
   const profile = getActiveProfile();
+  const maxAP = getCurrentMaxAP();
 
   if (ap < profile.signatureCost) {
-    const resultBox = document.getElementById("rollResult");
-    resultBox.className = "fail";
-    resultBox.innerText = "Not enough AP for " + profile.signatureName;
-    document.getElementById("rollFormula").innerText = "Need " + profile.signatureCost + " AP";
+    showResultPopup(profile.signatureName.toUpperCase(), `
+      <div class="popup-result failed">
+        <h4>NOT ENOUGH AP</h4>
+        <p><b>Current AP:</b> ${ap}</p>
+        <p><b>Needed:</b> ${profile.signatureCost}</p>
+        <p><b>Current Max AP:</b> ${maxAP}</p>
+      </div>
+    `);
     return;
   }
 
   ap -= profile.signatureCost;
-  setText("ap", ap);
-  rollAttribute(profile.signatureAttribute, profile.signatureDifficulty, profile.signatureName);
+
+  const attribute = profile.signatureAttribute;
+  const roll = Math.floor(Math.random() * 20) + 1;
+  const breakdown = getRollBreakdown(attribute);
+  const total = roll + breakdown.finalBonus;
+  const status = getRollStatus(roll, total, profile.signatureDifficulty);
+  const effect = getSignatureEffect(profile, status);
+
+  applySignatureEffect(profile, status);
+  updateDisplay();
+
+  const effectBlock = effect ? `<div class="effect-block"><b>Effect:</b><p>${effect}</p></div>` : "";
+  const body = `
+    <div class="popup-result ${status.toLowerCase().replace(/ /g, '-')}">
+      <p><b>Roll:</b> ${roll}</p>
+      ${formatBonusLines(attribute, breakdown)}
+      <p class="popup-total"><b>Total:</b> ${total} vs ${profile.signatureDifficulty}</p>
+      <h4>${status}</h4>
+      ${effectBlock}
+    </div>
+  `;
+
+  showResultPopup(profile.signatureName.toUpperCase(), body);
+  addRollHistory(`${profile.signatureName}: ${roll} + ${breakdown.finalBonus} = ${total} vs ${profile.signatureDifficulty}`);
 }
 
 function addRollHistory(entry) {
@@ -197,9 +304,13 @@ function addRollHistory(entry) {
   document.getElementById("rollHistory").innerHTML = rollHistory.join("<br>");
 }
 
-function nextTurn() {
-  ap = startingAP;
+function refreshAP() {
+  ap = getCurrentMaxAP();
   updateDisplay();
+}
+
+function nextTurn() {
+  refreshAP();
 }
 
 function resetGame() {
